@@ -34,7 +34,7 @@ export interface User {
   image: string;
   email: string;
   name: string;
-  emailVerified: boolean;
+  emailVerified?: boolean;
 }
 
 export interface CreateUsernameResponse {

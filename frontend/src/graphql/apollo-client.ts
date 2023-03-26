@@ -15,7 +15,7 @@ const wsLink =
   typeof window !== 'undefined' /* это чтобы убедиться,что в браузере,а не в некстСервере */
     ? new GraphQLWsLink(
         createClient({
-          url: 'ws://localhost4000/graphql/subscriptions',
+          url: 'ws://localhost:4000/graphql/subscriptions',
           /* этим параметром отправлю session в бэкенд,чтобы там забрать эти данные,при инициализации */ connectionParams:
             async () => ({
               session: await getSession(),

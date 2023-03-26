@@ -48,7 +48,7 @@ const resolvers = {
     ): Promise<CreateUsernameResponse> => {
       const { username } = args;
       const { prisma, session } = context;
-      console.log('aaaaaaaaaaaaaaaaaaaaa', session);
+      // console.log('aaaaaaaaaaaaaaaaaaaaa', session);
 
       if (!session?.user) {
         /* проверяю авторизован ли */
