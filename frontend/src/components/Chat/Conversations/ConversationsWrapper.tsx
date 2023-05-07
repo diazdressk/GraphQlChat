@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client';
-import { Box } from '@chakra-ui/react';
+import { Box, SkeletonCircle } from '@chakra-ui/react';
 import { Session } from 'next-auth';
 import ConversationList from './ConversationList';
 import ConversationOperations from '../../../graphql/operations/conversation';
@@ -7,6 +7,7 @@ import { ConversationsData } from '../../../utill/types';
 import { ConversationPopulated } from '../../../../../backend/src/util/types';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import SkeletonLoader from '../../common/SkeletonLoader';
 interface ConversationsWrapperProps {
   session: Session;
 }
@@ -17,7 +18,7 @@ const ConversationsWrapper: React.FC<ConversationsWrapperProps> = ({ session }) 
     error: conversationsError,
     loading: conversationsLoading,
     subscribeToMore,
-  } = useQuery<ConversationsData, null /* ничего не передаю,просто зову */>(
+  } = useQuery<ConversationsData>(
     ConversationOperations.Queries.conversations,
   );
 
@@ -61,10 +62,12 @@ const ConversationsWrapper: React.FC<ConversationsWrapperProps> = ({ session }) 
         md: '400px',
       }}
       bg="whiteAlpha.50"
+      flexDirection='column'
+      gap={4}
       py={6}
       px={3}
     >
-      <ConversationList session={session} conversations={conversationsData?.conversations || []} onViewConversation={onViewConversation} />
+      {conversationsLoading ? <SkeletonLoader count={6} height='70px' /> : <ConversationList session={session} conversations={conversationsData?.conversations || []} onViewConversation={onViewConversation} />}
     </Box>
   );
 };
