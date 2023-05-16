@@ -5,7 +5,6 @@ export const MessageFields = `
   sender {
     id
     username
-    image
   }
   body
   createdAt

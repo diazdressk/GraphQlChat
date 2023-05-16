@@ -17,7 +17,7 @@ const MessagesHeader: React.FC<MessagesHeaderProps> = ({
   conversationId,
 }) => {
   const router = useRouter();
-  const { data, loading } = useQuery<ConversationsData, null>(
+  const { data, loading } = useQuery<ConversationsData>(
     ConversationOperations.Queries.conversations
   );
 
@@ -55,7 +55,7 @@ const MessagesHeader: React.FC<MessagesHeaderProps> = ({
         <Stack direction="row">
           <Text color="whiteAlpha.600">To: </Text>
           <Text fontWeight={600}>
-            {formatUsernames(conversation.participants, userId).usernames}
+            {formatUsernames(conversation.participants, userId)}
           </Text>
         </Stack>
       )}

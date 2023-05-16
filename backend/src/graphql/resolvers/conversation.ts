@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { GraphQLError } from 'graphql';
 import { withFilter } from 'graphql-subscriptions';
-import { ConversationPopulated, GraphQLContext } from '../../util/types';
+import { ConversationPopulated, ConversationUpdatedSubscriptionPayload, GraphQLContext } from '../../util/types';
+import { userIsConversationParticipant } from '../../util/functions';
 
 const resolvers = {
   Query: {
@@ -84,29 +85,99 @@ const resolvers = {
         throw new GraphQLError('Error creating conversation');
       }
     },
+    markConversationAsRead: async (
+      _: any,
+      args: { userId: string; conversationId: string },
+      context: GraphQLContext,
+    ): Promise<boolean> => {
+      const { session, prisma } = context;
+      const { userId, conversationId } = args;
+
+      if (!session?.user) {
+        throw new GraphQLError('Not authorized');
+      }
+
+      try {
+        const participant = await prisma.conversationParticipant.findFirst({
+          where: {
+            userId,
+            conversationId,
+          },
+        });
+
+        await prisma.conversationParticipant.update({
+          where: {
+            id: participant?.id,
+          },
+          data: {
+            hasSeenLatestMessage: true,
+          },
+        });
+        return true;
+      } catch (error: any) {
+        console.log('markConversationAsRead erro: ', error);
+        throw new GraphQLError(error?.message);
+      }
+    },
   },
   Subscription: {
     conversationCreated: {
-      subscribe: withFilter/* это фильтрация, первый параметр то, что будет отправляться, второй параметр- фильтрация...именно тут, фильтрую  по юзерам, которые участвуют в беседе...если юзер участник беседы, то ему отправляются эти данные с сообщениями */(
-        (_: any, __: any, context: GraphQLContext) => {
+      subscribe: withFilter(
+        /* это фильтрация, первый параметр то, что будет отправляться, второй параметр- фильтрация...именно тут, фильтрую  по юзерам, которые участвуют в беседе...если юзер участник беседы, то ему отправляются эти данные с сообщениями */(
+        _: any,
+        __: any,
+        context: GraphQLContext,
+      ) => {
           const { pubsub } = context;
-          return pubsub.asyncIterator(['CONVERSATION_CREATED'])/* слушаю по этому ключу */
+          return pubsub.asyncIterator(['CONVERSATION_CREATED']); /* слушаю по этому ключу */
         },
+        (payload: ConversationCreatedSubscriptionPayload, _, context: GraphQLContext) => {
+          const { session } = context;
+
+          if (!session?.user) {
+            throw new GraphQLError('Not authorized');
+          }
+
+          const {
+            conversationCreated: { participants },
+          } = payload;
+
+          // const userIsParticipant = !!participants?.find((p) => p.userId === session?.user?.id);
+
+          const userIsParticipant = userIsConversationParticipant(participants, session.user.id);
+
+          return userIsParticipant;
+        },
+      ),
+    },
+    conversationUpdated: {
+      subscribe: withFilter(
         (
-          payload: ConversationCreatedSubscriptionPayload, _, context: GraphQLContext
+          _: any,
+          __: any,
+          context: GraphQLContext,
         ) => {
-          const { session } = context
-          const { conversationCreated: { participants } } = payload
-          const userIsParticipant = !!participants?.find(p => p?.userId === session?.user?.id)
+          const { pubsub } = context;
+          return pubsub.asyncIterator(['CONVERSATION_UPDATED']); /* слушаю по этому ключу */
+        }, (payload: ConversationUpdatedSubscriptionPayload, _: any, context: GraphQLContext) => {
+          const { session } = context;
+
+          if (!session?.user) {
+            throw new GraphQLError('Not authorized');
+          }
+
+          const { id: userId } = session.user;
+          const { conversationUpdated: { conversation: { participants } } } = payload
+
+          const userIsParticipant = userIsConversationParticipant(participants, userId)
           return userIsParticipant
-        }
-      )
-    }
-  }
+        })
+    },
+  },
 };
 
 export interface ConversationCreatedSubscriptionPayload {
-  conversationCreated: ConversationPopulated
+  conversationCreated: ConversationPopulated;
 }
 
 export const participantPopulated = Prisma.validator<Prisma.ConversationParticipantInclude>()({
@@ -114,7 +185,6 @@ export const participantPopulated = Prisma.validator<Prisma.ConversationParticip
     select: {
       id: true,
       username: true,
-      image: true,
     },
   },
 });
@@ -129,7 +199,6 @@ export const conversationPopulated = Prisma.validator<Prisma.ConversationInclude
         select: {
           id: true,
           username: true,
-          image: true,
         },
       },
     },

@@ -7,7 +7,6 @@ const ConversationFields = `
     user {
       id
       username
-      image
     }
     hasSeenLatestMessage
   }
@@ -35,6 +34,14 @@ export default {
         }
       }
     `,
+    markConversationAsRead: gql`
+      mutation MarkConversationAsRead(
+        $userId: String!
+        $conversationId: String!
+      ) {
+        markConversationAsRead(userId: $userId, conversationId: $conversationId)
+      }
+    `,
   },
   Subscriptions: {
     conversationCreated: gql`
@@ -44,5 +51,14 @@ export default {
         }
       }
     `,
+    conversationUpdated: gql`
+      subscription ConversationUpdated {
+        conversationUpdated {
+          conversation {
+            ${ConversationFields}
+          }
+        }
+      }
+    `
   },
 };

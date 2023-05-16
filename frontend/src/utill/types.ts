@@ -24,7 +24,6 @@ export interface SearchUsersData {
 export interface SearchedUser {
   id: string;
   username: string;
-  image: string;
 }
 
 /* 
@@ -44,6 +43,11 @@ export interface CreateConversationInput {
   participantIds: Array<string>
 }
 
+export interface ConversationUpdatedData {
+  conversationUpdated: {
+    conversation: ConversationPopulated
+  }
+}
 
 /**
  * Messages
@@ -56,7 +60,7 @@ export interface MessagesVariables {
   conversationId: string
 }
 
-export interface MesssageSubscriptionData {
+export interface MessageSubscriptionData {
   subscriptionData: {
     data: {
       messageSent: MessagePopulated

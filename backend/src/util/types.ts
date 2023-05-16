@@ -32,7 +32,6 @@ export interface SubscriptionContext extends Context {
 export interface User {
   id: string;
   username: string;
-  image: string;
   email: string;
   name: string;
   emailVerified?: boolean;
@@ -51,6 +50,11 @@ export type ParticipantPopulated = Prisma.ConversationParticipantGetPayload<{
   include: typeof participantPopulated
 }>
 
+export interface ConversationUpdatedSubscriptionPayload {
+  conversationUpdated: {
+    conversation: ConversationPopulated
+  }
+}
 /**  
  * Messages
 */

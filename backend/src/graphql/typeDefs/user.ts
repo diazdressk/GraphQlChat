@@ -7,13 +7,11 @@ const typeDefs = gql`
     username: String
     email: String
     emailVerified: Boolean
-    image: String
   }
 
   type SearchedUser {
     id: String
     username: String
-    image: String
   }
 
   type Query {

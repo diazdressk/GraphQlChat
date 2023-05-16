@@ -10,6 +10,7 @@ interface ChatProps {
 
 const Chat: React.FC<ChatProps> = ({ session }) => {
   return (
+    /* @ts-ignore */
     <Flex height="100vh">{/* див с флексом */}
       <ConversationsWrapper session={session} />
       <FeedWrapper session={session} />

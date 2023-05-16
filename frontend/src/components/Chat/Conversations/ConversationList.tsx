@@ -9,7 +9,7 @@ import ConversationModal from './Modal/Modal';
 interface ConversationListProps {
   session: Session;
   conversations: Array<ConversationPopulated>;
-  onViewConversation: (conversationId: string) => void;
+  onViewConversation: (conversationId: string, hasSeenLatestMessage: boolean | undefined) => void;
 }
 
 const ConversationList: React.FC<ConversationListProps> = ({
@@ -21,7 +21,12 @@ const ConversationList: React.FC<ConversationListProps> = ({
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
   const router = useRouter();
-  const { user: { id: userId } } = session;
+  const {
+    user: { id: userId },
+  } = session;
+
+  /* если пришло новое сообщзение,поднимаю вверх */
+  const sortedConversations = [...conversations].sort((a, b) => b.updatedAt.valueOf() - a.updatedAt.valueOf())
 
   return (
     <Box width="100%">
@@ -33,20 +38,25 @@ const ConversationList: React.FC<ConversationListProps> = ({
         borderRadius={4}
         cursor="pointer"
         onClick={onOpen}>
+        {/* @ts-ignore */} {/* ошибка с версией тс,решить позже! */}
         <Text textAlign="center" color="whiteAlpha.800" fontWeight={500}>
           Find or start a conversation
         </Text>
       </Box>
       <ConversationModal isOpen={isOpen} onClose={onClose} session={session} />
-      {conversations.map((conversation) => (
-        <ConversationItem
-          key={conversation.id}
-          userId={userId}
-          conversation={conversation}
-          onClick={() => onViewConversation(conversation.id)}
-          isSelected={conversation.id === router.query.conversationId}
-        />
-      ))}
+      {sortedConversations.map((conversation) => {
+        const participant = conversation.participants.find((p: any) => p.user.id === userId);
+        return (
+          <ConversationItem
+            key={conversation.id}
+            userId={userId}
+            conversation={conversation}
+            onClick={() => onViewConversation(conversation.id, participant?.hasSeenLatestMessage)}
+            hasSeenLatestMessage={participant?.hasSeenLatestMessage}
+            isSelected={conversation.id === router.query.conversationId}
+          />
+        );
+      })}
     </Box>
   );
   21.0;

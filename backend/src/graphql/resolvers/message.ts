@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { GraphQLError } from 'graphql';
 import { withFilter } from 'graphql-subscriptions';
-import { userIdConversationParticipant } from '../../util/functions';
+import { userIsConversationParticipant } from '../../util/functions';
 import {
   GraphQLContext,
   MessagePopulated,
@@ -39,7 +39,7 @@ const resolvers = {
         throw new GraphQLError('Conversation not found');
       }
 
-      const allowedToView = userIdConversationParticipant(
+      const allowedToView = userIsConversationParticipant(
         conversation.participants,
         userId,
       ); /*есть ли участник в конверсатионе*/
@@ -68,22 +68,22 @@ const resolvers = {
     },
   },
   Mutation: {
-    sendMessage: async (
+    sendMessage: async function (
       _: any,
       args: SendMessageArguments,
-      context: GraphQLContext,
-    ): Promise<boolean> => {
-      const { prisma, pubsub, session } = context;
-      const { body, conversationId, id: messageId, senderId } = args;
+      context: GraphQLContext
+    ): Promise<boolean> {
+      const { session, prisma, pubsub } = context;
+      const { id: messageId, senderId, conversationId, body } = args;
 
       if (!session?.user) {
-        throw new GraphQLError('Not authorized');
+        throw new GraphQLError("Not authorized");
       }
 
       const { id: userId } = session.user;
 
       if (userId !== senderId) {
-        throw new GraphQLError('Not authorized');
+        throw new GraphQLError("Not authorized");
       }
 
       try {
@@ -101,62 +101,53 @@ const resolvers = {
           where: {
             userId,
             conversationId,
-          }
-        })
+          },
+        });
 
         if (!participant) {
-          throw new GraphQLError('Participant does not exist')
+          throw new GraphQLError("Participant does not exist");
         }
-
-        const { id: participantId } = participant;
 
         const conversation = await prisma.conversation.update({
           where: {
-            /* выбираю беседу,в которую отправил сообщение */ id: conversationId,
+             /* выбираю беседу,в которую отправил сообщение */ id: conversationId,
           },
           data: {
             latestMessageId: newMessage.id,
             participants: {
               update: {
                 where: {
-                  /* беру отправителя */ id: participantId,
+                  /* беру отправителя */ id: participant.id,
                 },
                 data: {
-                  /* тк для отправителя сообщения не нужно делать сообщение Непрочитанным,тут делаю тру */
-                  hasSeenLatestMessage: true,
+                  /* тк для отправителя сообщения не нужно делать сообщение Непрочитанным,тут делаю тру */hasSeenLatestMessage: true,
                 },
               },
               updateMany: {
                 where: {
                   NOT: {
-                    /* все участники беседы,у которых айди не равен айдишнику отрпавителя сообщения */
-                    userId,
+                    /* все участники беседы,у которых айди не равен айдишнику отрпавителя сообщения */userId,
                   },
                 },
                 data: {
-                  hasSeenLatestMessage:
-                    false /* для них делаю Непрочитано для последнего сообщения */,
+                  hasSeenLatestMessage: false/* для них делаю Непрочитано для последнего сообщения */,
                 },
               },
             },
           },
-          include: conversationPopulated
+          include: conversationPopulated,
         });
 
-        pubsub.publish('MESSAGE_SENT', {
-          messageSent: newMessage,
-        }); /* отправляю новое сообщение через сабскрипшн,на фронте подпишусь на это и при появлении нового сообщения,покажу значок - "не прочитано"*/
-
-        // pubsub.publish('CONVERSATION_UPDATED', {/* обновляю само сообщение */
-        //   conversationUpdated: {
-        //     conversation
-        //   }
-        // })
+        pubsub.publish("MESSAGE_SENT", { messageSent: newMessage });/* отправляю новое сообщение через сабскрипшн,на фронте подпишусь на это и при появлении нового сообщения,покажу значок - "не прочитано"*/
+        pubsub.publish("CONVERSATION_UPDATED", {
+          conversationUpdated: {
+            conversation,
+          },
+        });/* обновляю само сообщение */
       } catch (error) {
-        console.log('sendMessage error:', error);
-        throw new GraphQLError('Error sending message');
+        console.log("sendMessage error", error);
+        throw new GraphQLError("Error sending message");
       }
-
       return true;
     },
   },
@@ -185,7 +176,6 @@ export const messagePopulated = Prisma.validator<Prisma.MessageInclude>()({
     select: {
       /* эти данные беру для messagePopulated */ id: true,
       username: true,
-      image: true
     },
   },
 });

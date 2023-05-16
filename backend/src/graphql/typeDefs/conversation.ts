@@ -7,6 +7,10 @@ const typeDefs = gql`
     createConversation(participantIds: [String]): CreateConversationResponse
   }
 
+  type Mutation {
+    markConversationAsRead(userId: String!, conversationId: String!): Boolean
+  }
+
   type CreateConversationResponse {
     conversationId: String
   }
@@ -17,6 +21,7 @@ const typeDefs = gql`
     hasSeenLatestMessage: Boolean
   }
 
+
   type Conversation {
     id: String
     latestMessage: Message
@@ -25,12 +30,20 @@ const typeDefs = gql`
     updatedAt: Date
   }
 
+  type ConversationUpdatedSubscriptionPayload {
+    conversation: Conversation
+  }
+
   type Query {
     conversations: [Conversation]
   }
 
   type Subscription {
     conversationCreated: Conversation
+  }
+
+  type Subscription {
+    conversationUpdated: ConversationUpdatedSubscriptionPayload
   }
 `;
 

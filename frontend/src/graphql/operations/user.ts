@@ -7,7 +7,6 @@ export default {
         searchUsers(username: $username) {
           id
           username
-          image
         }
       }
     `,
